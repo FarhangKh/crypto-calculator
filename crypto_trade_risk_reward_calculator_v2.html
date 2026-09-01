@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>Crypto Trade Calculator</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1220;color:#eef4ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif}
+.wrap{max-width:540px;margin:auto;padding:16px 13px 28px}
+.card{background:#121b2d;border:1px solid #293852;border-radius:22px;padding:18px;box-shadow:0 15px 40px #0005}
+h1{font-size:21px;text-align:center;margin:2px 0 6px}
+.sub{text-align:center;color:#98a7bf;font-size:12px;margin-bottom:17px}
+label{display:block;color:#aebbd0;font-size:13px;margin:12px 0 6px}
+input,select{width:100%;height:48px;border-radius:12px;border:1px solid #30405e;background:#0d1627;color:#fff;padding:0 13px;font-size:16px;outline:0}
+input:focus,select:focus{border-color:#4d9cff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{width:100%;height:50px;border:0;border-radius:13px;background:#3388ff;color:#fff;font-size:16px;font-weight:700;margin-top:17px}
+.error{display:none;color:#ff9e9e;background:#2a1720;border:1px solid #633040;padding:10px;border-radius:11px;font-size:12px;margin-top:12px}
+.results{display:none;margin-top:16px}
+.result{background:#0d1627;border:1px solid #263852;border-radius:14px;padding:12px 13px;margin-top:9px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.result b{font-size:16px}.muted{color:#94a3b8;font-size:12px}
+.pill{padding:5px 9px;border-radius:20px;background:#182843;color:#9ec7ff;font-size:10px;white-space:nowrap}
+.rr{margin-top:15px;padding-top:13px;border-top:1px solid #293852}
+.rr h2{font-size:15px;margin:0 0 8px}.rrrow{display:grid;grid-template-columns:.8fr 1.2fr 1.1fr;gap:6px;padding:9px 5px;border-bottom:1px solid #1d2940;font-size:12px}.rrhead{color:#8190a8;font-size:11px}
+.note{font-size:10.5px;color:#7f8da4;line-height:1.85;margin-top:13px}
+@media(max-width:380px){.grid{grid-template-columns:1fr}.rrrow{font-size:11px}}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="card">
+<h1>ماشین‌حساب معامله کریپتو</h1>
+<div class="sub">ضرر، سود، حجم پوزیشن و R:R</div>
+
+<label>قیمت فعلی ارز (USDT) — اختیاری</label>
+<input id="current" type="number" step="any" placeholder="مثلاً 65000">
+
+<div class="grid">
+<div><label>قیمت ورود</label><input id="entry" type="number" step="any" placeholder="مثلاً 64000"></div>
+<div><label>اهرم (Leverage)</label><input id="lev" type="number" step="any" placeholder="مثلاً 10"></div>
+</div>
+
+<label>مبلغ مارجین واردشده (USDT)</label>
+<input id="margin" type="number" step="any" placeholder="مثلاً 100">
+
+<div class="grid">
+<div><label>جهت معامله</label>
+<select id="side"><option value="long">Long</option><option value="short">Short</option></select></div>
+<div><label>حد ضرر (Stop Loss)</label><input id="stop" type="number" step="any" placeholder="مثلاً 63000"></div>
+</div>
+
+<label>حد سود (Take Profit)</label>
+<input id="target" type="number" step="any" placeholder="مثلاً 66000">
+
+<button class="btn" onclick="calc()">محاسبه</button>
+<div id="err" class="error"></div>
+
+<div id="results" class="results">
+<div class="result"><span><span class="muted">حجم کل پوزیشن</span><br><b id="notional">—</b></span><span class="pill">NOTIONAL</span></div>
+<div class="result"><span><span class="muted">تعداد واحد ارز</span><br><b id="qty">—</b></span><span class="pill">QUANTITY</span></div>
+<div class="result"><span><span class="muted">فاصله تا استاپ</span><br><b id="stopPct">—</b></span><span class="pill">STOP %</span></div>
+<div class="result"><span><span class="muted">ضرر در Stop Loss</span><br><b id="loss">—</b></span><span class="pill">USDT</span></div>
+<div class="result"><span><span class="muted">فاصله تا Take Profit</span><br><b id="tpPct">—</b></span><span class="pill">TP %</span></div>
+<div class="result"><span><span class="muted">سود در Take Profit</span><br><b id="profit">—</b></span><span class="pill">USDT</span></div>
+<div class="result"><span><span class="muted">نسبت ریسک به ریوارد</span><br><b id="rr">—</b></span><span class="pill">R:R</span></div>
+
+<div class="rr">
+<h2>اهداف R:R</h2>
+<div class="rrrow rrhead"><div>R:R</div><div>قیمت هدف</div><div>سود USDT</div></div>
+<div id="rrTable"></div>
+</div>
+</div>
+
+<div class="note">
+فرمول‌ها: حجم پوزیشن = مارجین × لوریج. ضرر/سود = تعداد واحد × فاصله قیمت ورود تا خروج. لوریج به‌تنهایی سود یا ضرر را چندبرابر نمی‌کند؛ فقط با مارجین مشخص، حجم پوزیشن را تعیین می‌کند. کارمزد، Funding، Slippage و تفاوت Mark Price با قیمت اجرای سفارش در این نسخه لحاظ نشده‌اند. قیمت فعلی صرفاً برای نمایش/ورودی اطلاعات است و در P&amp;L تا استاپ یا تارگت نقشی ندارد.
+</div>
+</div></div>
+
+<script>
+function fmt(n){return Number(n).toLocaleString('en-US',{maximumFractionDigits:8});}
+function calc(){
+ const e=Number(document.getElementById('entry').value);
+ const l=Number(document.getElementById('lev').value);
+ const m=Number(document.getElementById('margin').value);
+ const s=Number(document.getElementById('stop').value);
+ const t=Number(document.getElementById('target').value);
+ const side=document.getElementById('side').value;
+ const err=document.getElementById('err'), box=document.getElementById('results');
+ if(![e,l,m,s,t].every(Number.isFinite)||[e,l,m,s,t].some(v=>v<=0)){
+   err.textContent='لطفاً قیمت ورود، لوریج، مارجین، حد ضرر و حد سود را با اعداد مثبت وارد کنید.';
+   err.style.display='block'; box.style.display='none'; return;
+ }
+ if(side==='long' && (s>=e || t<=e)){err.textContent='در Long: حد ضرر باید پایین‌تر و حد سود بالاتر از قیمت ورود باشد.';err.style.display='block';box.style.display='none';return;}
+ if(side==='short' && (s<=e || t>=e)){err.textContent='در Short: حد ضرر باید بالاتر و حد سود پایین‌تر از قیمت ورود باشد.';err.style.display='block';box.style.display='none';return;}
+ err.style.display='none';
+ const notional=m*l, qty=notional/e;
+ const stopDist=Math.abs(e-s), tpDist=Math.abs(t-e);
+ const stopPct=stopDist/e*100, tpPct=tpDist/e*100;
+ const loss=qty*stopDist, profit=qty*tpDist, rr=tpDist/stopDist;
+ document.getElementById('notional').textContent=fmt(notional)+' USDT';
+ document.getElementById('qty').textContent=fmt(qty);
+ document.getElementById('stopPct').textContent=fmt(stopPct)+' %';
+ document.getElementById('loss').textContent=fmt(loss)+' USDT';
+ document.getElementById('tpPct').textContent=fmt(tpPct)+' %';
+ document.getElementById('profit').textContent=fmt(profit)+' USDT';
+ document.getElementById('rr').textContent=fmt(rr)+':1';
+ const table=document.getElementById('rrTable'); table.innerHTML='';
+ for(let r=1;r<=5;r++){
+   const target=side==='long'?e+stopDist*r:e-stopDist*r;
+   const p=loss*r;
+   const row=document.createElement('div'); row.className='rrrow';
+   row.innerHTML='<div>1:'+r+'</div><div>'+fmt(target)+'</div><div>'+fmt(p)+'</div>';
+   table.appendChild(row);
+ }
+ box.style.display='block';
+}
+</script>
+</body></html>
